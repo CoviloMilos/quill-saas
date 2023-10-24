@@ -7,9 +7,26 @@ import Skeleton from "react-loading-skeleton";
 import { Button } from "./ui/button";
 import Link from "next/link";
 import { format } from "date-fns";
+import { useState } from "react";
 
 const Dashboard = () => {
+  const [currentlyDeletingFile, setCurrentlyDeletingFile] = useState<
+    string | null
+  >(null);
   const { data: files, isLoading } = trpc.getUserFiles.useQuery();
+  const utils = trpc.useUtils();
+  const { mutate: deleteFile, isLoading: isDeleteLoading } =
+    trpc.deleteFile.useMutation({
+      onSuccess: () => {
+        utils.getUserFiles.invalidate();
+      },
+      onMutate: ({ id }) => {
+        setCurrentlyDeletingFile(id);
+      },
+      onSettled: () => {
+        setCurrentlyDeletingFile(null);
+      },
+    });
 
   return (
     <main className='mx-auto max-w-7xl md:p-10'>
@@ -60,12 +77,12 @@ const Dashboard = () => {
 
                     <Button
                       onClick={() => {
-                        alert("123");
+                        deleteFile({ id: file.id });
                       }}
                       size='sm'
                       className='w-full'
                       variant='destructive'>
-                      {"123" === file.id ? (
+                      {currentlyDeletingFile === file.id ? (
                         <Loader2 className='h-4 w-4 animate-spin' />
                       ) : (
                         <Trash className='h-4 w-4' />
